@@ -114,7 +114,7 @@ impl<'w, T: Deserialize<'w>> CompletedRequestReadOnlyItem<'w, T> {
         if !status.is_success() {
             Err(response.status())?
         }
-        info!("body {body}, response code {}", response.status());
+        debug!("body {body}, response code {}", response.status());
         Ok(serde_json::from_str(body)?)
     }
 }

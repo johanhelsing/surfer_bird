@@ -48,12 +48,9 @@ fn make_request(mut commands: Commands, api: Res<ApiClient>) {
         .surfer_send::<Wrapper<MatchResponse>>(&mut commands);
 }
 
-fn response_handler(
-    mut commands: Commands,
-    string_requests: Query<(Entity, CompletedRequest<Wrapper<MatchResponse>>)>,
-) {
-    for (entity, string_request) in string_requests.iter() {
-        match string_request.data() {
+fn response_handler(requests: Query<CompletedRequest<Wrapper<MatchResponse>>>) {
+    for request in requests.iter() {
+        match request.data() {
             Ok(data) => {
                 info!("response_handler {:?}", data.r#match.id);
             }
@@ -61,6 +58,5 @@ fn response_handler(
                 error!("{}", err);
             }
         }
-        commands.entity(entity).despawn();
     }
 }
