@@ -1,7 +1,4 @@
-use crate::{
-    details::{Request, Response},
-    resources::HttpClient,
-};
+use crate::{components::*, resources::HttpClient};
 use bevy::{
     prelude::*,
     tasks::{IoTaskPool, Task},

@@ -1,30 +1,17 @@
 #![allow(clippy::type_complexity)]
 
-use std::marker::PhantomData;
-
 use bevy::{ecs::query::WorldQuery, prelude::*};
-use details::{Request, Response};
+use components::*;
 use serde::Deserialize;
 use surf::StatusCode;
 use systems::*;
 
+mod components;
 mod send_ext;
 mod systems;
 
 pub mod prelude {
     pub use super::{send_ext::SurferSendExt, CompletedRequest, RequestBundle, SurferPlugin};
-}
-
-pub(crate) mod details {
-    use bevy::prelude::*;
-
-    #[derive(Component)]
-    pub struct Request {
-        pub(crate) inner: surf::Request,
-    }
-
-    #[derive(Component)]
-    pub struct Response(pub(crate) Result<(surf::Response, String), surf::Error>);
 }
 
 mod resources {
@@ -39,23 +26,8 @@ pub struct SurferPlugin;
 impl Plugin for SurferPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<resources::HttpClient>();
-        app.add_event::<details::Request>();
         app.add_system(send_requests);
         app.add_system(extract_responses);
-    }
-}
-
-#[derive(Component)]
-struct ResponseMarker<T: 'static> {
-    marker: PhantomData<T>,
-}
-
-unsafe impl<T> Sync for ResponseMarker<T> {}
-unsafe impl<T> Send for ResponseMarker<T> {}
-
-impl<T> Default for ResponseMarker<T> {
-    fn default() -> Self {
-        Self { marker: default() }
     }
 }
 
