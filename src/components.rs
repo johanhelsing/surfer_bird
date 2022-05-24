@@ -1,12 +1,10 @@
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
-#[derive(Component)]
-pub(crate) struct Request {
-    pub(crate) inner: surf::Request,
-}
+#[derive(Component, Deref, DerefMut)]
+pub(crate) struct Request(pub surf::Request);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub(crate) struct Response(pub(crate) Result<(surf::Response, String), surf::Error>);
 
 #[derive(Component)]
@@ -22,3 +20,6 @@ impl<T> Default for ResponseMarker<T> {
         Self { marker: default() }
     }
 }
+
+#[derive(Component)]
+pub struct LogErrors;

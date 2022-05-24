@@ -14,6 +14,8 @@ pub mod prelude {
     pub use super::{send_ext::SurferSendExt, CompletedRequest, RequestBundle, SurferPlugin};
 }
 
+pub use components::LogErrors;
+
 mod resources {
     use bevy::prelude::*;
 
@@ -25,9 +27,10 @@ pub struct SurferPlugin;
 
 impl Plugin for SurferPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<resources::HttpClient>();
-        app.add_system(send_requests);
-        app.add_system(extract_responses);
+        app.init_resource::<resources::HttpClient>()
+            .add_system(send_requests)
+            .add_system(extract_responses)
+            .add_system(log_errors);
     }
 }
 
@@ -104,7 +107,7 @@ pub struct RequestBundle<T: 'static> {
 
 impl<T: 'static> RequestBundle<T> {
     pub fn new(request: surf::Request) -> Self {
-        let request = Request { inner: request };
+        let request = Request(request);
         Self {
             request,
             marker: default(),
