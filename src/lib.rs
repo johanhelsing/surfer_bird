@@ -117,4 +117,9 @@ impl<'w, T: Deserialize<'w>> CompletedRequestReadOnlyItem<'w, T> {
         debug!("body {body}, response code {}", response.status());
         Ok(serde_json::from_str(body)?)
     }
+
+    pub fn body_string(&self) -> Result<&str, RequestError> {
+        let (_response, body) = self.raw_response.0.as_ref()?;
+        Ok(body)
+    }
 }
