@@ -12,7 +12,7 @@ mod send_ext;
 mod systems;
 
 pub mod prelude {
-    pub use super::{send_ext::SurferSendExt, CompletedRequest, SurferPlugin};
+    pub use super::{send_ext::SurferSendExt, CompletedRequest, RequestBundle, SurferPlugin};
 }
 
 pub(crate) mod details {
@@ -121,5 +121,33 @@ impl<'w, T: Deserialize<'w>> CompletedRequestReadOnlyItem<'w, T> {
     pub fn body_string(&self) -> Result<&str, RequestError> {
         let (_response, body) = self.raw_response.0.as_ref()?;
         Ok(body)
+    }
+}
+
+#[derive(Bundle)]
+pub struct RequestBundle<T: 'static> {
+    request: Request,
+    marker: ResponseMarker<T>,
+}
+
+impl<T: 'static> RequestBundle<T> {
+    pub fn new(request: surf::Request) -> Self {
+        let request = Request { inner: request };
+        Self {
+            request,
+            marker: default(),
+        }
+    }
+}
+
+impl<T> From<surf::RequestBuilder> for RequestBundle<T> {
+    fn from(request_builder: surf::RequestBuilder) -> Self {
+        Self::from(request_builder.build())
+    }
+}
+
+impl<T> From<surf::Request> for RequestBundle<T> {
+    fn from(request: surf::Request) -> Self {
+        Self::new(request)
     }
 }
