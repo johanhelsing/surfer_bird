@@ -1,11 +1,9 @@
 use crate::{components::*, resources::HttpClient};
-use bevy::{
-    prelude::*,
-    tasks::{IoTaskPool, Task},
-};
-use futures_lite::future;
+use bevy::{prelude::*, tasks::IoTaskPool};
+use futures_channel::oneshot;
 
-type RequestTask = Task<Result<(surf::Response, String), surf::Error>>;
+#[derive(Component)]
+pub(crate) struct RequestTask(oneshot::Receiver<Result<(surf::Response, String), surf::Error>>);
 
 pub(crate) fn send_requests(
     completed_requests: Query<Entity, (With<Request>, With<Response>)>,
@@ -24,13 +22,21 @@ pub(crate) fn send_requests(
         let client = (*client).clone();
         let request = request.0.clone();
         debug!("{} {}", request.method(), request.url());
-        let task: RequestTask = task_pool.spawn(async move {
-            let mut response = client.send(request).await?;
-            let body = response.body_string().await?;
-            Ok((response, body))
-        });
+        let (sender, receiver) = oneshot::channel();
 
-        commands.entity(entity).insert(task);
+        task_pool
+            .spawn(async move {
+                let result = async move {
+                    let mut response = client.send(request).await?;
+                    let body = response.body_string().await?;
+                    Ok((response, body))
+                }
+                .await;
+                let _ = sender.send(result);
+            })
+            .detach();
+
+        commands.entity(entity).insert(RequestTask(receiver));
     }
 }
 
@@ -39,7 +45,7 @@ pub(crate) fn extract_responses(
     mut query: Query<(Entity, &mut RequestTask)>,
 ) {
     for (entity, mut task) in query.iter_mut() {
-        if let Some(response) = future::block_on(future::poll_once(&mut *task)) {
+        if let Some(response) = task.0.try_recv().expect("sender dropped unexpectedly") {
             commands
                 .entity(entity)
                 .insert(Response(response))
