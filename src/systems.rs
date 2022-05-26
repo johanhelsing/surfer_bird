@@ -39,15 +39,17 @@ pub(crate) fn startup(
 pub(crate) fn send_requests(
     completed_requests: Query<Entity, (With<Request>, With<Response>)>,
     mut commands: Commands,
-    new_requests: Query<(Entity, &Request), (Without<RequestTask>, Without<Response>)>,
+    mut new_requests: Query<(Entity, &mut Request), (Without<RequestTask>, Without<Response>)>,
     job_queue: Res<JobQueue>,
 ) {
     for entity in completed_requests.iter() {
         commands.entity(entity).despawn();
     }
 
-    for (entity, request) in new_requests.iter() {
-        let request = request.0.clone();
+    for (entity, mut request) in new_requests.iter_mut() {
+        let body = request.0.take_body();
+        let mut request = request.0.clone();
+        request.set_body(body); // surf::Request::clone does not clone the body!
         debug!("{} {}", request.method(), request.url());
         let (sender, receiver) = oneshot::channel();
 
