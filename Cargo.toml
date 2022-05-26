@@ -7,17 +7,18 @@ edition = "2021"
 bevy = { version = "0.7", default-features = false }
 surf = { version = "2.3", default-features = false, features = ["default-client"] }
 futures-channel = "0.3"
+futures-util = "0.3"
 thiserror = "1.0"
 serde_json = "1.0"
 serde = "1.0"
 
 # wasm
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2.3", default-features = false, features = ["wasm-client"] } # has to match cynic
+surf = { version = "2.3", default-features = false, features = ["wasm-client"] }
 
 # native
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2.3", default-features = false, features = ["h1-client-rustls"] } # has to match cynic
+surf = { version = "2.3", default-features = false, features = ["h1-client-rustls"] }
 
 [dev-dependencies]
 bevy = { version = "0.7", default-features = false, features = ["render", "bevy_winit"] }

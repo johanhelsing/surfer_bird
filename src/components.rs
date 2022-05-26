@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use futures_channel::oneshot;
 use std::marker::PhantomData;
 
 #[derive(Component, Deref, DerefMut)]
@@ -23,3 +24,6 @@ impl<T> Default for ResponseMarker<T> {
 
 #[derive(Component)]
 pub struct LogErrors;
+
+#[derive(Component)]
+pub(crate) struct RequestTask(pub oneshot::Receiver<Result<(surf::Response, String), surf::Error>>);

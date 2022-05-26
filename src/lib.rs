@@ -2,6 +2,7 @@
 
 use bevy::{ecs::query::WorldQuery, prelude::*};
 use components::*;
+use resources::{JobQueue, JobQueueReceiver};
 use serde::Deserialize;
 use surf::StatusCode;
 use systems::*;
@@ -18,16 +19,30 @@ pub use components::LogErrors;
 
 mod resources {
     use bevy::prelude::*;
+    use futures_channel::{mpsc, oneshot};
 
-    #[derive(Default, Deref, DerefMut)]
-    pub(crate) struct HttpClient(surf::Client);
+    pub(crate) type JobResult = Result<(surf::Response, String), surf::Error>;
+
+    #[derive(Deref, DerefMut)]
+    pub(crate) struct JobQueue(
+        pub(crate) mpsc::UnboundedSender<(surf::Request, oneshot::Sender<JobResult>)>,
+    );
+
+    #[derive(Deref, DerefMut)]
+    pub(crate) struct JobQueueReceiver(
+        pub(crate) Option<mpsc::UnboundedReceiver<(surf::Request, oneshot::Sender<JobResult>)>>,
+    );
 }
 
 pub struct SurferPlugin;
 
 impl Plugin for SurferPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<resources::HttpClient>()
+        let (sender, receiver) = futures_channel::mpsc::unbounded();
+
+        app.insert_resource(JobQueueReceiver(Some(receiver)))
+            .insert_resource(JobQueue(sender))
+            .add_startup_system(startup)
             .add_system(send_requests)
             .add_system(extract_responses)
             .add_system(log_errors);

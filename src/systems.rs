@@ -1,40 +1,60 @@
-use crate::{components::*, resources::HttpClient};
+use crate::{
+    components::*,
+    resources::{JobQueue, JobQueueReceiver},
+};
 use bevy::{prelude::*, tasks::IoTaskPool};
 use futures_channel::oneshot;
+use futures_util::StreamExt;
 
-#[derive(Component)]
-pub(crate) struct RequestTask(oneshot::Receiver<Result<(surf::Response, String), surf::Error>>);
+pub(crate) fn startup(
+    mut job_queue_receiver: ResMut<JobQueueReceiver>,
+    task_pool: Res<IoTaskPool>,
+) {
+    let job_queue_receiver = job_queue_receiver.take().unwrap();
+
+    task_pool
+        .spawn(async move {
+            let client = surf::Client::default();
+            let client = &client;
+
+            const MAX_CONCURRENT_REQUESTS: usize = 100;
+
+            job_queue_receiver
+                .for_each_concurrent(MAX_CONCURRENT_REQUESTS, |job| async move {
+                    let (request, sender) = job;
+                    let result = async move {
+                        let mut response = client.send(request).await?;
+                        let body = response.body_string().await?;
+                        Ok((response, body))
+                    }
+                    .await;
+                    let _ = sender.send(result);
+                    // todo: select magic
+                })
+                .await;
+        })
+        .detach();
+}
 
 pub(crate) fn send_requests(
     completed_requests: Query<Entity, (With<Request>, With<Response>)>,
     mut commands: Commands,
     new_requests: Query<(Entity, &Request), (Without<RequestTask>, Without<Response>)>,
-    task_pool: Res<IoTaskPool>,
-    client: Res<HttpClient>,
+    job_queue: Res<JobQueue>,
 ) {
     for entity in completed_requests.iter() {
         commands.entity(entity).despawn();
     }
 
-    //perf: this spawns a lot of tasks... maybe better to have one worker task?
-
     for (entity, request) in new_requests.iter() {
-        let client = (*client).clone();
         let request = request.0.clone();
         debug!("{} {}", request.method(), request.url());
         let (sender, receiver) = oneshot::channel();
 
-        task_pool
-            .spawn(async move {
-                let result = async move {
-                    let mut response = client.send(request).await?;
-                    let body = response.body_string().await?;
-                    Ok((response, body))
-                }
-                .await;
-                let _ = sender.send(result);
-            })
-            .detach();
+        job_queue
+            .0
+            .unbounded_send((request, sender))
+            .expect("failed to send http request job");
 
         commands.entity(entity).insert(RequestTask(receiver));
     }
