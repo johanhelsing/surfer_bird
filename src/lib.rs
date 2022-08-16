@@ -51,10 +51,10 @@ impl Plugin for SurferPlugin {
 
 #[derive(WorldQuery)]
 #[world_query(mutable)]
-pub struct CompletedRequest<'w, T: 'static> {
-    marker: &'w mut ResponseMarker<T>,
-    request: &'w mut Request,
-    raw_response: &'w mut Response,
+pub struct CompletedRequest<T: 'static> {
+    marker: &'static mut ResponseMarker<T>,
+    request: &'static mut Request,
+    raw_response: &'static mut Response,
 }
 
 #[derive(thiserror::Error, Debug)]

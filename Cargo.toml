@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.7", default-features = false }
+bevy = { version = "0.8", default-features = false }
 surf = { version = "2.3", default-features = false, features = ["default-client"] }
 futures-channel = "0.3"
 futures-util = "0.3"
@@ -21,4 +21,4 @@ surf = { version = "2.3", default-features = false, features = ["wasm-client"] }
 surf = { version = "2.3", default-features = false, features = ["h1-client-rustls"] }
 
 [dev-dependencies]
-bevy = { version = "0.7", default-features = false, features = ["render", "bevy_winit"] }
+bevy = { version = "0.8", default-features = false, features = ["render", "bevy_winit"] }
