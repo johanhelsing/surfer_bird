@@ -6,10 +6,8 @@ use bevy::{prelude::*, tasks::IoTaskPool};
 use futures_channel::oneshot;
 use futures_util::StreamExt;
 
-pub(crate) fn startup(
-    mut job_queue_receiver: ResMut<JobQueueReceiver>,
-    task_pool: Res<IoTaskPool>,
-) {
+pub(crate) fn startup(mut job_queue_receiver: ResMut<JobQueueReceiver>) {
+    let task_pool = IoTaskPool::get();
     let job_queue_receiver = job_queue_receiver.take().unwrap();
 
     task_pool
